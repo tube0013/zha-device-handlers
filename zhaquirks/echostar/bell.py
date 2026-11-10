@@ -1,6 +1,6 @@
 """Echostar Sage Doorbell Sensor Device."""
+
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import (
     Alarms,
     Basic,
@@ -27,6 +27,7 @@ from zhaquirks.const import (
     PROFILE_ID,
     SHORT_PRESS,
 )
+from zhaquirks.legacy import CustomDevice
 
 MANUFACTURER = " Echostar"
 MODEL = "   Bell"

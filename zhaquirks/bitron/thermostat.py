@@ -1,9 +1,6 @@
 """Module for Bitron/SMaBiT thermostats."""
 
-import logging
-
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import (
     Basic,
     Identify,
@@ -25,8 +22,7 @@ from zhaquirks.const import (
     OUTPUT_CLUSTERS,
     PROFILE_ID,
 )
-
-_LOGGER = logging.getLogger(__name__)
+from zhaquirks.legacy import CustomDevice
 
 
 class Av201032PowerConfigurationCluster(PowerConfigurationCluster):

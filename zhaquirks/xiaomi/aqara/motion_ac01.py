@@ -1,12 +1,12 @@
 """Quirk for aqara lumi.motion.ac01."""
+
 from __future__ import annotations
 
-import logging
 from typing import Any
 
+from zigpy import types
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
-import zigpy.types as types
+from zigpy.zcl import AttributeReportedEvent, AttributeUpdatedEvent
 from zigpy.zcl.clusters.general import Basic, DeviceTemperature, Identify, Ota
 from zigpy.zcl.clusters.measurement import OccupancySensing
 
@@ -20,7 +20,12 @@ from zhaquirks.const import (
     PROFILE_ID,
     ZHA_SEND_EVENT,
 )
-from zhaquirks.xiaomi import XiaomiAqaraE1Cluster
+from zhaquirks.legacy import CustomDevice
+from zhaquirks.xiaomi import (
+    PRESENCE_DETECTED,
+    XIAOMI_AQARA_ATTRIBUTE_E1,
+    XiaomiAqaraE1Cluster,
+)
 
 OCCUPANCY = 0x0000
 PRESENCE = 0x0142
@@ -32,8 +37,6 @@ MOTION_SENSITIVITY = 0x010C
 APPROACH_DISTANCE = 0x0146
 RESET_NO_PRESENCE_STATUS = 0x0157
 SENSOR = "sensor"
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class AqaraPresenceEvents(types.enum8):
@@ -53,7 +56,6 @@ class AqaraPresenceEvents(types.enum8):
 class OppleCluster(XiaomiAqaraE1Cluster):
     """Opple cluster."""
 
-    ep_attribute = "opple_cluster"
     attributes = {
         PRESENCE: ("presence", types.uint8_t, True),
         MONITORING_MODE: ("monitoring_mode", types.uint8_t, True),
@@ -62,12 +64,23 @@ class OppleCluster(XiaomiAqaraE1Cluster):
         RESET_NO_PRESENCE_STATUS: ("reset_no_presence_status", types.uint8_t, True),
     }
 
+    def _handle_attribute_event(
+        self, event: AttributeReportedEvent | AttributeUpdatedEvent
+    ) -> None:
+        """Update occupancy from the presence state included in heartbeats."""
+        super()._handle_attribute_event(event)
+        if event.attribute_id != XIAOMI_AQARA_ATTRIBUTE_E1:
+            return
+        presence = self._parse_aqara_attributes(event.value).get(PRESENCE_DETECTED)
+        if presence in (0, 1):
+            self.endpoint.occupancy.update_attribute(OCCUPANCY, presence)
+
     def _update_attribute(self, attrid: int, value: Any) -> None:
         super()._update_attribute(attrid, value)
-        if attrid == PRESENCE or attrid == PRESENCE2:
+        if attrid in (PRESENCE, PRESENCE2):
             if value != 0xFF:
                 self.endpoint.occupancy.update_attribute(OCCUPANCY, value)
-        elif attrid == PRESENCE_EVENT or attrid == PRESENCE_EVENT2:
+        elif attrid in (PRESENCE_EVENT, PRESENCE_EVENT2):
             self.listener_event(ZHA_SEND_EVENT, AqaraPresenceEvents(value).name, {})
 
 

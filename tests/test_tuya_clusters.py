@@ -1,5 +1,6 @@
 """Test units for new Tuya cluster framework."""
 
+import logging
 from unittest import mock
 
 import pytest
@@ -14,6 +15,7 @@ from zhaquirks.tuya import (
     TuyaCommand,
     TuyaData,
     TuyaDatapointData,
+    TuyaDPType,
     TuyaNewManufCluster,
 )
 
@@ -161,14 +163,14 @@ def test_tuya_data_bitmap():
 
     data = b"\x05\x00\x02\x40\x02"
     r, _ = TuyaData.deserialize(data)
-    r.payload == 0x4002
+    assert r.payload == 0x0240
 
     r.payload = t.bitmap16(0x2004)
     assert r.raw == b"\x20\x04"
 
     data = b"\x05\x00\x04\x40\x02\x80\x01"
     r, _ = TuyaData.deserialize(data)
-    r.payload == 0x40028001
+    assert r.payload == 0x1800240
 
     r.payload = t.bitmap32(0x10082004)
     assert r.raw == b"\x10\x08\x20\x04"
@@ -204,6 +206,55 @@ def test_tuya_data_unknown():
 
     with pytest.raises(ValueError):
         r.payload = 0
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    (
+        (
+            b"\x02\x00\x04\x00\x00\x00\xd2",
+            "TuyaData(dp_type=<TuyaDPType.VALUE: 2>, function=0, "
+            "raw=b'\\x00\\x00\\x00\\xd2', *payload=210)",
+        ),
+        (
+            b"\x03\x00\x04Tuya",
+            "TuyaData(dp_type=<TuyaDPType.STRING: 3>, function=0, "
+            "raw=b'Tuya', *payload='Tuya')",
+        ),
+        # a RAW payload is the raw bytes, so it is not repeated
+        (
+            b"\x00\x00\x03\x02ab",
+            "TuyaData(dp_type=<TuyaDPType.RAW: 0>, function=0, raw=b'\\x02ab')",
+        ),
+        # invalid payloads are left out
+        (
+            b"\x02\x00\x01\x00",
+            "TuyaData(dp_type=<TuyaDPType.VALUE: 2>, function=0, raw=b'\\x00')",
+        ),
+        (
+            b"\x06\x00\x01\x00",
+            "TuyaData(dp_type=<TuyaDPType.undefined_0x06: 6>, function=0, "
+            "raw=b'\\x00')",
+        ),
+    ),
+)
+def test_tuya_data_repr(data, expected):
+    """Test the TuyaData repr shows the datapoint, also when it is invalid."""
+
+    r, _ = TuyaData.deserialize(data)
+    assert repr(r) == expected
+    assert repr(TuyaDatapointData(2, r)) == f"TuyaDatapointData(dp=2, data={expected})"
+
+
+def test_tuya_data_repr_empty():
+    """Test the repr of an empty TuyaData."""
+
+    data = TuyaData()
+    assert repr(data) == "TuyaData(dp_type=None, function=0, raw=None)"
+
+    for dp_type in TuyaDPType:
+        data.dp_type = dp_type
+        assert repr(data) == f"TuyaData(dp_type={dp_type!r}, function=0, raw=None)"
 
 
 @pytest.mark.parametrize(
@@ -251,8 +302,8 @@ def test_tuya_cluster_request(
 ):
     """Test cluster specific request."""
 
-    hdr = zcl_f.ZCLHeader.general(1, cmd_id, direction=zcl_f.Direction.Client_to_Server)
-    hdr.frame_control.disable_default_response = False
+    hdr = zcl_f.ZCLHeader.general(1, cmd_id, direction=zcl_f.Direction.Server_to_Client)
+    hdr.frame_control = hdr.frame_control.replace(disable_default_response=False)
 
     with mock.patch.object(TuyaCluster, handler_name) as handler:
         handler.return_value = mock.sentinel.status
@@ -266,8 +317,8 @@ def test_tuya_cluster_request(
 def test_tuya_cluster_request_unk_command(default_rsp_mock, TuyaCluster):
     """Test cluster specific request handler -- no handler."""
 
-    hdr = zcl_f.ZCLHeader.general(1, 0xFE, direction=zcl_f.Direction.Client_to_Server)
-    hdr.frame_control.disable_default_response = False
+    hdr = zcl_f.ZCLHeader.general(1, 0xFE, direction=zcl_f.Direction.Server_to_Client)
+    hdr.frame_control = hdr.frame_control.replace(disable_default_response=False)
 
     TuyaCluster.handle_cluster_request(hdr, (mock.sentinel.args,))
     assert default_rsp_mock.call_count == 1
@@ -278,8 +329,8 @@ def test_tuya_cluster_request_unk_command(default_rsp_mock, TuyaCluster):
 def test_tuya_cluster_request_no_handler(default_rsp_mock, TuyaCluster):
     """Test cluster specific request handler -- no handler."""
 
-    hdr = zcl_f.ZCLHeader.general(1, 0xFE, direction=zcl_f.Direction.Client_to_Server)
-    hdr.frame_control.disable_default_response = False
+    hdr = zcl_f.ZCLHeader.general(1, 0xFE, direction=zcl_f.Direction.Server_to_Client)
+    hdr.frame_control = hdr.frame_control.replace(disable_default_response=False)
 
     new_client_commands = TuyaCluster.client_commands.copy()
     new_client_commands[0xFE] = zcl_f.ZCLCommandDef(
@@ -291,3 +342,51 @@ def test_tuya_cluster_request_no_handler(default_rsp_mock, TuyaCluster):
 
     assert default_rsp_mock.call_count == 1
     assert default_rsp_mock.call_args[1]["status"] == zcl_f.Status.UNSUP_CLUSTER_COMMAND
+
+
+@pytest.mark.parametrize(
+    "data",
+    (
+        pytest.param(b"\x02\x00\x01\x00", id="value-1-byte"),
+        pytest.param(b"\x01\x00\x00", id="bool-empty"),
+        pytest.param(b"\x04\x00\x00", id="enum-empty"),
+        pytest.param(b"\x05\x00\x03\x01\x02\x03", id="bitmap-3-bytes"),
+        pytest.param(b"\x03\x00\x01\xff", id="string-not-utf8"),
+        pytest.param(b"\x06\x00\x04\x03\x02\x01\x00", id="unknown-type"),
+    ),
+)
+def test_tuya_get_data_invalid_datapoint(TuyaCluster, data, caplog):
+    """Test an invalid datapoint is skipped and the next one is still handled."""
+
+    invalid, _ = TuyaData.deserialize(data)
+    valid, _ = TuyaData.deserialize(b"\x02\x00\x04\x00\x00\x00\xd2")
+    command = TuyaCommand(
+        status=0,
+        tsn=2,
+        datapoints=[TuyaDatapointData(1, invalid), TuyaDatapointData(2, valid)],
+    )
+
+    payloads = []
+    handlers = {1: "_dp_2_attr_update", 2: "_dp_2_attr_update"}
+    with (
+        mock.patch.object(TuyaCluster, "data_point_handlers", handlers),
+        mock.patch.object(
+            TuyaCluster,
+            "_dp_2_attr_update",
+            lambda datapoint: payloads.append(datapoint.data.payload),
+        ),
+    ):
+        status = TuyaCluster.handle_get_data(command)
+
+    assert status == zcl_f.Status.SUCCESS
+    assert payloads == [210]
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "Ignoring invalid datapoint 1 " in warnings[0]
+
+
+def test_tuya_get_data_no_datapoints(TuyaCluster):
+    """Test a command without datapoints is acknowledged."""
+
+    command = TuyaCommand(status=0, tsn=2, datapoints=[])
+    assert TuyaCluster.handle_get_data(command) == zcl_f.Status.SUCCESS

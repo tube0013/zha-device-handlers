@@ -1,8 +1,7 @@
 """Xiaomi aqara button sensor."""
-import logging
 
 from zigpy.profiles import zha
-from zigpy.zcl.clusters.general import Basic, Identify, MultistateInput, OnOff
+from zigpy.zcl.clusters.general import Basic, Identify, MultistateInput, OnOff, Ota
 
 from zhaquirks import CustomCluster
 from zhaquirks.const import (
@@ -31,6 +30,7 @@ from zhaquirks.xiaomi import (
     LUMI,
     BasicCluster,
     DeviceTemperatureCluster,
+    XiaomiAqaraE1Cluster,
     XiaomiCustomDevice,
     XiaomiPowerConfiguration,
 )
@@ -38,7 +38,7 @@ from zhaquirks.xiaomi import (
 B1ACN01_HOLD = 0
 B1ACN01_RELEASE = 255
 BUTTON_DEVICE_TYPE = 0x5F01
-BUTTON_DEVICE_TYPEB = 259
+BUTTON_DEVICE_TYPE_B = 259
 DOUBLE = 2
 HOLD = 16
 RELEASE = 17
@@ -56,13 +56,9 @@ MOVEMENT_TYPE = {
     SHAKE: COMMAND_SHAKE,
 }
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class MultistateInputCluster(CustomCluster, MultistateInput):
     """Multistate input cluster."""
-
-    cluster_id = MultistateInput.cluster_id
 
     def __init__(self, *args, **kwargs):
         """Init."""
@@ -89,7 +85,7 @@ class SwitchAQ3(XiaomiCustomDevice):
         # device_version=1
         # input_clusters=[0, 18, 6, 1]
         # output_clusters=[0]>
-        MODELS_INFO: [(LUMI, "lumi.sensor_switch.aq3")],
+        MODELS_INFO: [(LUMI, "lumi.sensor_switch.aq3"), (LUMI, "lumi.sensor_swit")],
         ENDPOINTS: {
             1: {
                 PROFILE_ID: zha.PROFILE_ID,
@@ -125,7 +121,7 @@ class SwitchAQ3(XiaomiCustomDevice):
         (DOUBLE_PRESS, DOUBLE_PRESS): {COMMAND: COMMAND_DOUBLE},
         (SHORT_PRESS, SHORT_PRESS): {COMMAND: COMMAND_SINGLE},
         (LONG_PRESS, LONG_PRESS): {COMMAND: COMMAND_HOLD},
-        (LONG_RELEASE, LONG_RELEASE): {COMMAND: COMMAND_HOLD},
+        (LONG_RELEASE, LONG_RELEASE): {COMMAND: COMMAND_RELEASE},
     }
 
 
@@ -141,7 +137,7 @@ class SwitchAQ3B(XiaomiCustomDevice):
         ENDPOINTS: {
             1: {
                 PROFILE_ID: zha.PROFILE_ID,
-                DEVICE_TYPE: BUTTON_DEVICE_TYPEB,
+                DEVICE_TYPE: BUTTON_DEVICE_TYPE_B,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
                     MultistateInput.cluster_id,
@@ -170,5 +166,59 @@ class SwitchAQ3B(XiaomiCustomDevice):
         (DOUBLE_PRESS, DOUBLE_PRESS): {COMMAND: COMMAND_DOUBLE},
         (SHORT_PRESS, SHORT_PRESS): {COMMAND: COMMAND_SINGLE},
         (LONG_PRESS, LONG_PRESS): {COMMAND: COMMAND_HOLD},
-        (LONG_RELEASE, LONG_RELEASE): {COMMAND: COMMAND_HOLD},
+        (LONG_RELEASE, LONG_RELEASE): {COMMAND: COMMAND_RELEASE},
+    }
+
+
+class SwitchAQ3B2(XiaomiCustomDevice):
+    """Aqara button device - alternate version."""
+
+    signature = {
+        # <SimpleDescriptor endpoint=1 profile=260 device_type=259
+        # device_version=1
+        # input_clusters=[0, 1, 3]
+        # output_clusters=[3, 6, 19]>
+        MODELS_INFO: [(LUMI, "lumi.remote.b1acn02")],
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: BUTTON_DEVICE_TYPE_B,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    XiaomiPowerConfiguration.cluster_id,
+                    Identify.cluster_id,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    OnOff.cluster_id,
+                    Ota.cluster_id,
+                ],
+            }
+        },
+    }
+    replacement = {
+        ENDPOINTS: {
+            1: {
+                DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
+                INPUT_CLUSTERS: [
+                    BasicCluster,
+                    XiaomiPowerConfiguration,
+                    Identify.cluster_id,
+                    MultistateInputCluster,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    OnOff.cluster_id,
+                    Ota.cluster_id,
+                    XiaomiAqaraE1Cluster,
+                ],
+            }
+        },
+    }
+
+    device_automation_triggers = {
+        (DOUBLE_PRESS, DOUBLE_PRESS): {COMMAND: COMMAND_DOUBLE},
+        (SHORT_PRESS, SHORT_PRESS): {COMMAND: COMMAND_SINGLE},
+        (LONG_PRESS, LONG_PRESS): {COMMAND: COMMAND_HOLD},
+        (LONG_RELEASE, LONG_RELEASE): {COMMAND: COMMAND_RELEASE},
     }

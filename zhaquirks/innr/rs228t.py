@@ -1,7 +1,7 @@
 """Innr RS 228 T device."""
-from zigpy.profiles import zha
+
+from zigpy.profiles import zgp, zha
 from zigpy.profiles.zha import DeviceType
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import (
     Basic,
     GreenPowerProxy,
@@ -23,6 +23,8 @@ from zhaquirks.const import (
     OUTPUT_CLUSTERS,
     PROFILE_ID,
 )
+from zhaquirks.innr import INNR
+from zhaquirks.legacy import CustomDevice
 
 
 class RS228T(CustomDevice):
@@ -33,7 +35,7 @@ class RS228T(CustomDevice):
         # device_version=1
         # input_clusters=[0, 3, 4, 5, 6, 8, 768, 4096]
         # output_clusters=[25]>
-        MODELS_INFO: [("innr", "RS 228 T")],
+        MODELS_INFO: [(INNR, "RS 228 T")],
         ENDPOINTS: {
             1: {
                 PROFILE_ID: zha.PROFILE_ID,
@@ -55,8 +57,8 @@ class RS228T(CustomDevice):
             # input_clusters=[]
             # output_clusters=[33]>
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -81,8 +83,8 @@ class RS228T(CustomDevice):
                 OUTPUT_CLUSTERS: [Ota.cluster_id],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },

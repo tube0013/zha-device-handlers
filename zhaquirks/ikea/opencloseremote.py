@@ -1,8 +1,8 @@
 """Device handler for IKEA of Sweden TRADFRI remote control."""
-from typing import Any, List, Optional, Union
+
+from typing import Any
 
 from zigpy.profiles import zha
-from zigpy.quirks import CustomCluster, CustomDevice
 import zigpy.types as t
 from zigpy.zcl import foundation
 from zigpy.zcl.clusters.closures import WindowCovering
@@ -19,6 +19,7 @@ from zigpy.zcl.clusters.general import (
 )
 from zigpy.zcl.clusters.lightlink import LightLink
 
+from zhaquirks.clusters import CustomCluster
 from zhaquirks.const import (
     ARGS,
     CLOSE,
@@ -35,7 +36,8 @@ from zhaquirks.const import (
     SHORT_PRESS,
     ZHA_SEND_EVENT,
 )
-from zhaquirks.ikea import IKEA, IKEA_CLUSTER_ID, PowerConfiguration1CRCluster
+from zhaquirks.ikea import IKEA, IKEA_CLUSTER_ID, DoublingPowerConfig1CRCluster
+from zhaquirks.legacy import CustomDevice
 
 COMMAND_CLOSE = "down_close"
 COMMAND_STOP_OPENING = "stop_opening"
@@ -54,18 +56,16 @@ class IkeaWindowCovering(CustomCluster, WindowCovering):
     def handle_cluster_request(
         self,
         hdr: foundation.ZCLHeader,
-        args: List[Any],
+        args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
-        ] = None,
+        dst_addressing: t.AddrMode | None = None,
     ) -> None:
         """Handle cluster specific commands.
 
         We just want to keep track of direction, to associate it with the stop command.
         """
 
-        cmd_name = self.server_commands.get(hdr.command_id, [hdr.command_id])[0]
+        cmd_name = self.server_commands[hdr.command_id].name
         if cmd_name == COMMAND_OPEN:
             self._is_closing = False
         elif cmd_name == COMMAND_CLOSE:
@@ -120,7 +120,7 @@ class IkeaTradfriOpenCloseRemote(CustomDevice):
                 DEVICE_TYPE: zha.DeviceType.WINDOW_COVERING_CONTROLLER,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration1CRCluster,
+                    DoublingPowerConfig1CRCluster,
                     Identify.cluster_id,
                     Alarms.cluster_id,
                     PollControl.cluster_id,

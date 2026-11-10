@@ -1,10 +1,9 @@
 """Quirk for LUMI lumi.motion.agl04."""
+
 from __future__ import annotations
 
-from typing import Any
-
+from zigpy import types
 from zigpy.profiles import zha
-import zigpy.types as types
 from zigpy.zcl.clusters.general import Basic, Identify, Ota, PowerConfiguration
 from zigpy.zcl.clusters.measurement import OccupancySensing
 
@@ -16,6 +15,7 @@ from zhaquirks.const import (
     MODELS_INFO,
     OUTPUT_CLUSTERS,
     PROFILE_ID,
+    BatterySize,
 )
 from zhaquirks.xiaomi import (
     DeviceTemperatureCluster,
@@ -33,24 +33,10 @@ MOTION_SENSITIVITY = 0x010C
 class OppleCluster(XiaomiAqaraE1Cluster):
     """Opple cluster."""
 
-    ep_attribute = "opple_cluster"
     attributes = {
         DETECTION_INTERVAL: ("detection_interval", types.uint8_t, True),
         MOTION_SENSITIVITY: ("motion_sensitivity", types.uint8_t, True),
     }
-
-    async def write_attributes(
-        self, attributes: dict[str | int, Any], manufacturer: int | None = None
-    ) -> list:
-        """Write attributes to device with internal 'attributes' validation."""
-        result = await super().write_attributes(attributes, manufacturer)
-        interval = attributes.get(
-            "detection_interval", attributes.get(DETECTION_INTERVAL)
-        )
-        self.endpoint.device.debug("occupancy reset interval: %s", interval)
-        if interval is not None:
-            self.endpoint.ias_zone.reset_s = int(interval)
-        return result
 
 
 class LocalMotionCluster(MotionCluster):
@@ -58,13 +44,21 @@ class LocalMotionCluster(MotionCluster):
 
     reset_s: int = 60
 
+    @property
+    def reset_after(self) -> int:
+        """Use the device's `detection_interval` if known, else `reset_s`."""
+        interval = self.endpoint.opple_cluster.get(DETECTION_INTERVAL)
+        if interval is None:
+            return self.reset_s
+        return int(interval)
+
 
 class LumiLumiMotionAgl04(XiaomiCustomDevice):
     """Lumi lumi.motion.agl04 custom device implementation."""
 
     def __init__(self, *args, **kwargs):
         """Init."""
-        self.battery_size = 11
+        self.battery_size = BatterySize.CR1632
         self.battery_quantity = 2
         self.motion_bus = Bus()
         super().__init__(*args, **kwargs)

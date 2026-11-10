@@ -1,6 +1,6 @@
 """Device handler for IKEA of Sweden TRADFRI remote control."""
+
 from zigpy.profiles import zha, zll
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.closures import WindowCovering
 from zigpy.zcl.clusters.general import (
     Alarms,
@@ -15,15 +15,16 @@ from zigpy.zcl.clusters.general import (
 )
 from zigpy.zcl.clusters.lightlink import LightLink
 
+from zhaquirks import LevelControlWithMoveDirection
 from zhaquirks.const import (
     CLUSTER_ID,
     COMMAND,
     COMMAND_MOVE,
+    COMMAND_MOVE_DOWN_RELEASE,
     COMMAND_MOVE_ON_OFF,
+    COMMAND_MOVE_UP_RELEASE,
     COMMAND_OFF,
     COMMAND_ON,
-    COMMAND_STOP,
-    COMMAND_STOP_ON_OFF,
     DEVICE_TYPE,
     DIM_DOWN,
     DIM_UP,
@@ -43,9 +44,10 @@ from zhaquirks.const import (
 from zhaquirks.ikea import (
     IKEA,
     IKEA_CLUSTER_ID,
-    LightLinkCluster,
-    PowerConfiguration1CRCluster,
+    DoublingPowerConfig1CRCluster,
+    PowerConfig1AAACluster,
 )
+from zhaquirks.legacy import CustomDevice
 
 
 class IkeaTradfriRemote2Btn(CustomDevice):
@@ -90,18 +92,18 @@ class IkeaTradfriRemote2Btn(CustomDevice):
                 DEVICE_TYPE: zha.DeviceType.NON_COLOR_CONTROLLER,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration1CRCluster,
+                    DoublingPowerConfig1CRCluster,
                     Identify.cluster_id,
                     Alarms.cluster_id,
                     PollControl.cluster_id,
-                    LightLinkCluster,
+                    LightLink.cluster_id,
                     IKEA_CLUSTER_ID,
                 ],
                 OUTPUT_CLUSTERS: [
                     Identify.cluster_id,
                     Groups.cluster_id,
                     OnOff.cluster_id,
-                    LevelControl.cluster_id,
+                    LevelControlWithMoveDirection,
                     Ota.cluster_id,
                     WindowCovering.cluster_id,
                     LightLink.cluster_id,
@@ -119,7 +121,7 @@ class IkeaTradfriRemote2Btn(CustomDevice):
             PARAMS: {"move_mode": 0},
         },
         (LONG_RELEASE, DIM_UP): {
-            COMMAND: COMMAND_STOP_ON_OFF,
+            COMMAND: COMMAND_MOVE_UP_RELEASE,
             CLUSTER_ID: 8,
             ENDPOINT_ID: 1,
         },
@@ -131,7 +133,7 @@ class IkeaTradfriRemote2Btn(CustomDevice):
             PARAMS: {"move_mode": 1},
         },
         (LONG_RELEASE, DIM_DOWN): {
-            COMMAND: COMMAND_STOP,
+            COMMAND: COMMAND_MOVE_DOWN_RELEASE,
             CLUSTER_ID: 8,
             ENDPOINT_ID: 1,
         },
@@ -146,7 +148,7 @@ class IkeaTradfriRemote2BtnZLL(CustomDevice):
         # device_version=248
         # input_clusters=[0, 1, 3, 9, 258, 4096, 64636]
         # output_clusters=[3, 4, 6, 8, 25, 258, 4096]>
-        MODELS_INFO: IkeaTradfriRemote2Btn.signature[MODELS_INFO].copy(),
+        MODELS_INFO: [(IKEA, "TRADFRI on/off switch")],
         ENDPOINTS: {
             1: {
                 PROFILE_ID: zll.PROFILE_ID,
@@ -160,25 +162,164 @@ class IkeaTradfriRemote2BtnZLL(CustomDevice):
                     LightLink.cluster_id,
                     IKEA_CLUSTER_ID,
                 ],
-                OUTPUT_CLUSTERS: IkeaTradfriRemote2Btn.signature[ENDPOINTS][1][
-                    OUTPUT_CLUSTERS
-                ].copy(),
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    OnOff.cluster_id,
+                    LevelControl.cluster_id,
+                    Ota.cluster_id,
+                    WindowCovering.cluster_id,
+                    LightLink.cluster_id,
+                ],
             }
         },
     }
-    signature[ENDPOINTS][1][INPUT_CLUSTERS].append(WindowCovering.cluster_id)
 
     replacement = {
         ENDPOINTS: {
             1: {
                 PROFILE_ID: zll.PROFILE_ID,
                 DEVICE_TYPE: zll.DeviceType.CONTROLLER,
-                INPUT_CLUSTERS: IkeaTradfriRemote2Btn.replacement[ENDPOINTS][1][
-                    INPUT_CLUSTERS
-                ].copy(),
-                OUTPUT_CLUSTERS: IkeaTradfriRemote2Btn.replacement[ENDPOINTS][1][
-                    OUTPUT_CLUSTERS
-                ].copy(),
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    DoublingPowerConfig1CRCluster,
+                    Identify.cluster_id,
+                    Alarms.cluster_id,
+                    LightLink.cluster_id,
+                    IKEA_CLUSTER_ID,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    OnOff.cluster_id,
+                    LevelControlWithMoveDirection,
+                    Ota.cluster_id,
+                    WindowCovering.cluster_id,
+                    LightLink.cluster_id,
+                ],
+            }
+        }
+    }
+
+    device_automation_triggers = IkeaTradfriRemote2Btn.device_automation_triggers.copy()
+
+
+class IkeaRodretRemote2Btn(CustomDevice):
+    """Custom device representing IKEA of Sweden RODRET remote control."""
+
+    signature = {
+        # <SimpleDescriptor endpoint=1 profile=260 device_type=2080
+        # device_version=1
+        # input_clusters=[0, 1, 3, 32, 4096, 64636]
+        # output_clusters=[3, 4, 6, 8, 258, 4096]>
+        MODELS_INFO: [(IKEA, "RODRET Dimmer")],
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: zha.DeviceType.NON_COLOR_CONTROLLER,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    PowerConfiguration.cluster_id,
+                    Identify.cluster_id,
+                    PollControl.cluster_id,
+                    LightLink.cluster_id,
+                    IKEA_CLUSTER_ID,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    OnOff.cluster_id,
+                    LevelControl.cluster_id,
+                    Ota.cluster_id,
+                    LightLink.cluster_id,
+                ],
+            }
+        },
+    }
+
+    replacement = {
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: zha.DeviceType.NON_COLOR_CONTROLLER,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    PowerConfig1AAACluster,
+                    Identify.cluster_id,
+                    PollControl.cluster_id,
+                    LightLink.cluster_id,
+                    IKEA_CLUSTER_ID,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    OnOff.cluster_id,
+                    LevelControlWithMoveDirection,
+                    Ota.cluster_id,
+                    LightLink.cluster_id,
+                ],
+            }
+        }
+    }
+
+    device_automation_triggers = IkeaTradfriRemote2Btn.device_automation_triggers.copy()
+
+
+class IkeaRodretRemote2BtnNew(CustomDevice):
+    """Custom device representing IKEA of Sweden RODRET remote control."""
+
+    signature = {
+        # <SimpleDescriptor endpoint=1 profile=260 device_type=2080
+        # device_version=1
+        # input_clusters=[0, 1, 3, 4, 32, 4096, 64636]
+        # output_clusters=[3, 4, 6, 8, 258, 4096]>
+        MODELS_INFO: [(IKEA, "RODRET Dimmer"), (IKEA, "RODRET wireless dimmer")],
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: zha.DeviceType.NON_COLOR_CONTROLLER,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    PowerConfiguration.cluster_id,
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    PollControl.cluster_id,
+                    LightLink.cluster_id,
+                    IKEA_CLUSTER_ID,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    OnOff.cluster_id,
+                    LevelControl.cluster_id,
+                    Ota.cluster_id,
+                    LightLink.cluster_id,
+                ],
+            }
+        },
+    }
+
+    replacement = {
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: zha.DeviceType.NON_COLOR_CONTROLLER,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    PowerConfig1AAACluster,
+                    Identify.cluster_id,
+                    PollControl.cluster_id,
+                    LightLink.cluster_id,
+                    IKEA_CLUSTER_ID,
+                ],
+                OUTPUT_CLUSTERS: [
+                    Identify.cluster_id,
+                    Groups.cluster_id,
+                    OnOff.cluster_id,
+                    LevelControlWithMoveDirection,
+                    Ota.cluster_id,
+                    LightLink.cluster_id,
+                ],
             }
         }
     }

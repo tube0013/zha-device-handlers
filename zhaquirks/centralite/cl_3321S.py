@@ -1,7 +1,7 @@
 """Centralite 3321S quirk."""
+
 # pylint disable=C0103
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import Basic, Identify, Ota, PollControl
 from zigpy.zcl.clusters.homeautomation import Diagnostic
 from zigpy.zcl.clusters.measurement import TemperatureMeasurement
@@ -17,6 +17,7 @@ from zhaquirks.const import (
     OUTPUT_CLUSTERS,
     PROFILE_ID,
 )
+from zhaquirks.legacy import CustomDevice
 from zhaquirks.samjin import SAMJIN
 
 MANUFACTURER_SPECIFIC_CLUSTER_ID = 0xFC0F  # decimal = 64527

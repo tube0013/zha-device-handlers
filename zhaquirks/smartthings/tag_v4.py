@@ -1,8 +1,6 @@
 """Device handler for smartthings tagV4 sensors."""
-import logging
 
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import Basic, BinaryInput, Identify, Ota, PollControl
 
 from zhaquirks import Bus, LocalDataCluster, PowerConfigurationCluster
@@ -13,8 +11,7 @@ from zhaquirks.const import (
     OUTPUT_CLUSTERS,
     PROFILE_ID,
 )
-
-_LOGGER = logging.getLogger(__name__)
+from zhaquirks.legacy import CustomDevice
 
 ARRIVAL_SENSOR_DEVICE_TYPE = 0x8000
 
@@ -22,7 +19,6 @@ ARRIVAL_SENSOR_DEVICE_TYPE = 0x8000
 class FastPollingPowerConfigurationCluster(PowerConfigurationCluster):
     """FastPollingPowerConfigurationCluster."""
 
-    cluster_id = PowerConfigurationCluster.cluster_id
     FREQUENCY = 45
     MINIMUM_CHANGE = 1
 
@@ -53,8 +49,6 @@ class FastPollingPowerConfigurationCluster(PowerConfigurationCluster):
 # stealing this for tracking alerts
 class TrackingCluster(LocalDataCluster, BinaryInput):
     """Tracking cluster."""
-
-    cluster_id = BinaryInput.cluster_id
 
     def __init__(self, *args, **kwargs):
         """Init."""

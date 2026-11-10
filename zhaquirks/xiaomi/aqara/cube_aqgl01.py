@@ -1,5 +1,4 @@
 """Xiaomi aqara magic cube device."""
-import logging
 
 from zigpy.profiles import zha
 from zigpy.zcl.clusters.general import (
@@ -28,6 +27,7 @@ from zhaquirks.const import (
     TURN_ON,
     VALUE,
     ZHA_SEND_EVENT,
+    BatterySize,
 )
 from zhaquirks.xiaomi import (
     LUMI,
@@ -143,8 +143,6 @@ SIDES = {
     KNOCK_6_VALUE: 6,
 }
 
-_LOGGER = logging.getLogger(__name__)
-
 
 def extend_dict(dictionary, value, ranges):
     """Extend a dict."""
@@ -158,8 +156,6 @@ extend_dict(MOVEMENT_TYPE, FLIP, range(FLIP_BEGIN, FLIP_END))
 class MultistateInputCluster(CustomCluster, MultistateInput):
     """Multistate input cluster."""
 
-    cluster_id = MultistateInput.cluster_id
-
     def __init__(self, *args, **kwargs):
         """Init."""
         self._current_state = {}
@@ -171,7 +167,6 @@ class MultistateInputCluster(CustomCluster, MultistateInput):
             self._current_state[STATUS_TYPE_ATTR] = action = MOVEMENT_TYPE.get(value)
             event_args = {VALUE: value}
             if action is not None:
-
                 if action in (SLIDE, KNOCK):
                     event_args[DESCRIPTION] = MOVEMENT_TYPE_DESCRIPTION[value]
                     event_args[ACTIVATED_FACE] = SIDES[value]
@@ -192,8 +187,6 @@ class MultistateInputCluster(CustomCluster, MultistateInput):
 
 class AnalogInputCluster(CustomCluster, AnalogInput):
     """Analog input cluster."""
-
-    cluster_id = AnalogInput.cluster_id
 
     def __init__(self, *args, **kwargs):
         """Init."""
@@ -222,7 +215,7 @@ class CubeAQGL01(XiaomiCustomDevice):
 
     def __init__(self, *args, **kwargs):
         """Init."""
-        self.battery_size = 9
+        self.battery_size = BatterySize.CR2450
         super().__init__(*args, **kwargs)
 
     signature = {
@@ -361,7 +354,7 @@ class CubeCAGL02(XiaomiCustomDevice):
 
     def __init__(self, *args, **kwargs):
         """Init."""
-        self.battery_size = 9
+        self.battery_size = BatterySize.CR2450
         super().__init__(*args, **kwargs)
 
     signature = {

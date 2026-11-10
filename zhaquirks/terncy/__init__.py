@@ -1,17 +1,19 @@
 """Module for Terncy quirks."""
+
 from collections import deque
 import math
-from typing import Any, List, Optional, Union
+from typing import Any
 
-from zigpy.quirks import CustomCluster
 import zigpy.types as t
 from zigpy.zcl import foundation
 from zigpy.zcl.clusters.measurement import (
     IlluminanceMeasurement,
     TemperatureMeasurement,
 )
+from zigpy.zcl.foundation import BaseCommandDefs
 
 from zhaquirks import LocalDataCluster, OccupancyOnEvent, _Motion
+from zhaquirks.clusters import CustomCluster
 from zhaquirks.const import (
     BUTTON,
     CLUSTER_COMMAND,
@@ -29,7 +31,7 @@ from zhaquirks.const import (
     TRIPLE_PRESS,
     VALUE,
     ZHA_SEND_EVENT,
-    ZONE_STATE,
+    ZONE_STATUS_CHANGE_COMMAND,
 )
 
 CLICK_TYPES = {1: "single", 2: "double", 3: "triple", 4: "quadruple", 5: "quintuple"}
@@ -57,7 +59,6 @@ ZONE_TYPE = 0x0001
 class IlluminanceMeasurementCluster(CustomCluster, IlluminanceMeasurement):
     """Terncy Illuminance Measurement Cluster."""
 
-    cluster_id = IlluminanceMeasurement.cluster_id
     ATTR_ID = 0
 
     def _update_attribute(self, attrid, value):
@@ -69,7 +70,6 @@ class IlluminanceMeasurementCluster(CustomCluster, IlluminanceMeasurement):
 class TemperatureMeasurementCluster(CustomCluster, TemperatureMeasurement):
     """Terncy Temperature Cluster."""
 
-    cluster_id = TemperatureMeasurement.cluster_id
     ATTR_ID = 0
 
     def _update_attribute(self, attrid, value):
@@ -91,12 +91,14 @@ class MotionCluster(LocalDataCluster, _Motion):
 
     def motion_event(self):
         """Motion event."""
-        super().listener_event(CLUSTER_COMMAND, 254, ZONE_STATE, [ON, 0, 0, 0])
+        super().listener_event(
+            CLUSTER_COMMAND, 254, ZONE_STATUS_CHANGE_COMMAND, [ON, 0, 0, 0]
+        )
 
         if self._timer_handle:
             self._timer_handle.cancel()
 
-        self._timer_handle = self._loop.call_later(self.reset_s, self._turn_off)
+        self._timer_handle = self._loop.call_later(self.reset_after, self._turn_off)
 
         if self.send_occupancy_event:
             self.endpoint.device.occupancy_bus.listener_event(OCCUPANCY_EVENT)
@@ -126,20 +128,19 @@ class TerncyRawCluster(CustomCluster):
     cluster_id = MANUFACTURER_SPECIFIC_CLUSTER_ID
     name = "Terncy Raw cluster"
 
-    client_commands = {
-        0x00: foundation.ZCLCommandDef(
-            "click_event",
-            {"count": t.uint8_t, "state": t.uint8_t},
-            False,
+    class ClientCommandDefs(BaseCommandDefs):
+        """Client command definitions."""
+
+        click_event = foundation.ZCLCommandDef(
+            id=0x00,
+            schema={"count": t.uint8_t, "state": t.uint8_t},
             is_manufacturer_specific=True,
-        ),
-        0x04: foundation.ZCLCommandDef(
-            "motion_event",
-            {"param1": t.uint8_t, "param2": t.uint8_t, "state": t.uint8_t},
-            False,
+        )
+        motion_event = foundation.ZCLCommandDef(
+            id=0x04,
+            schema={"param1": t.uint8_t, "param2": t.uint8_t, "state": t.uint8_t},
             is_manufacturer_specific=True,
-        ),
-    }
+        )
 
     def __init__(self, *args, **kwargs):
         """Init."""
@@ -149,11 +150,9 @@ class TerncyRawCluster(CustomCluster):
     def handle_cluster_request(
         self,
         hdr: foundation.ZCLHeader,
-        args: List[Any],
+        args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
-        ] = None,
+        dst_addressing: t.AddrMode | None = None,
     ):
         """Handle a cluster command received on this cluster."""
         if hdr.command_id == 0:  # click event
@@ -163,10 +162,9 @@ class TerncyRawCluster(CustomCluster):
                 return  # ignore repeated event for single action.
             else:
                 self._last_clicks.append((state, count))
-            if state > 5:
-                state = 5
+            state = min(state, 5)
             event_args = {PRESS_TYPE: CLICK_TYPES[state], "count": count, VALUE: state}
-            action = "button_{}".format(CLICK_TYPES[state])
+            action = f"button_{CLICK_TYPES[state]}"
             self.listener_event(ZHA_SEND_EVENT, action, event_args)
         elif hdr.command_id == 4:  # motion event
             state = args[2]

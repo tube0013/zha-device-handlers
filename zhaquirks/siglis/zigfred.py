@@ -1,9 +1,9 @@
 """zigfred device handler."""
-import logging
-from typing import Any, List, Optional, Union
 
-from zigpy.profiles import zha
-from zigpy.quirks import CustomCluster, CustomDevice
+import logging
+from typing import Any
+
+from zigpy.profiles import zgp, zha
 import zigpy.types as t
 from zigpy.zcl import foundation
 from zigpy.zcl.clusters.closures import WindowCovering
@@ -17,7 +17,9 @@ from zigpy.zcl.clusters.general import (
     Scenes,
 )
 from zigpy.zcl.clusters.lighting import Color
+from zigpy.zcl.foundation import BaseCommandDefs
 
+from zhaquirks.clusters import CustomCluster
 from zhaquirks.const import (
     BUTTON,
     BUTTON_1,
@@ -38,6 +40,7 @@ from zhaquirks.const import (
     SHORT_PRESS,
     ZHA_SEND_EVENT,
 )
+from zhaquirks.legacy import CustomDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,14 +59,14 @@ class ZigfredCluster(CustomCluster):
     cluster_id = ZIGFRED_CLUSTER_ID
     buttons_attribute_id = ZIGFRED_CLUSTER_BUTTONS_ATTRIBUTE_ID
 
-    server_commands = {
-        ZIGFRED_CLUSTER_COMMAND_BUTTON_EVENT: foundation.ZCLCommandDef(
-            "button_event",
-            {"param1": t.uint32_t},
-            is_reply=False,
+    class ServerCommandDefs(BaseCommandDefs):
+        """Server command definitions."""
+
+        button_event = foundation.ZCLCommandDef(
+            id=ZIGFRED_CLUSTER_COMMAND_BUTTON_EVENT,
+            schema={"param1": t.uint32_t},
             is_manufacturer_specific=True,
-        ),
-    }
+        )
 
     def _process_button_event(self, value: t.uint32_t):
         button_lookup = {
@@ -93,7 +96,7 @@ class ZigfredCluster(CustomCluster):
             PRESS_TYPE: press_type,
         }
 
-        _LOGGER.info(f"Got button press on zigfred cluster: {action}")
+        _LOGGER.info("Got button press on zigfred cluster: %s", action)
 
         if button and press_type:
             self.listener_event(ZHA_SEND_EVENT, action, event_args)
@@ -101,11 +104,9 @@ class ZigfredCluster(CustomCluster):
     def handle_cluster_request(
         self,
         hdr: foundation.ZCLHeader,
-        args: List[Any],
+        args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
-        ] = None,
+        dst_addressing: t.AddrMode | None = None,
     ) -> None:
         """Handle cluster specific commands."""
         if hdr.command_id == ZIGFRED_CLUSTER_COMMAND_BUTTON_EVENT:
@@ -114,11 +115,6 @@ class ZigfredCluster(CustomCluster):
 
 class ZigfredUno(CustomDevice):
     """zigfred uno device handler."""
-
-    def __init__(self, *args, **kwargs):
-        """Init."""
-        _LOGGER.info("Initializing zigfred uno")
-        super().__init__(*args, **kwargs)
 
     signature = {
         MODELS_INFO: [("Siglis", "zigfred uno")],
@@ -187,8 +183,8 @@ class ZigfredUno(CustomDevice):
                 # device_version=0,
                 # input_clusters=[],
                 # output_clusters=[33])
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -236,8 +232,8 @@ class ZigfredUno(CustomDevice):
                 ],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -266,11 +262,6 @@ class ZigfredUno(CustomDevice):
 
 class ZigfredPlus(CustomDevice):
     """zigfred plus device handler."""
-
-    def __init__(self, *args, **kwargs):
-        """Init."""
-        _LOGGER.info("Initializing zigfred plus")
-        super().__init__(*args, **kwargs)
 
     signature = {
         MODELS_INFO: [("Siglis", "zigfred plus")],
@@ -414,8 +405,8 @@ class ZigfredPlus(CustomDevice):
                 # device_version=0,
                 # input_clusters=[],
                 # output_clusters=[33])
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -510,8 +501,8 @@ class ZigfredPlus(CustomDevice):
                 ],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },

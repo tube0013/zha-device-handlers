@@ -1,5 +1,8 @@
 """Common constants for zhaquirks."""
-from zigpy.quirks import (
+
+import zigpy.types as t
+
+from zhaquirks.legacy import (
     SIG_ENDPOINTS,
     SIG_EP_INPUT,
     SIG_EP_OUTPUT,
@@ -23,6 +26,9 @@ BUTTON_3 = "button_3"
 BUTTON_4 = "button_4"
 BUTTON_5 = "button_5"
 BUTTON_6 = "button_6"
+BUTTON_CENTRE = "button_centre"
+BUTTON_7 = "button_7"
+BUTTON_8 = "button_8"
 CLICK_TYPE = "click_type"
 CLOSE = "close"
 CLUSTER_COMMAND = "cluster_command"
@@ -37,9 +43,19 @@ COMMAND_DOUBLE = "double"
 COMMAND_FURIOUS = "furious"
 COMMAND_HOLD = "hold"
 COMMAND_ID = "command_id"
+COMMAND_M_INITIAL_PRESS = "initial_press"
+COMMAND_M_LONG_PRESS = "long_press"
+COMMAND_M_LONG_RELEASE = "long_release"
+COMMAND_M_MULTI_PRESS_COMPLETE = "multi_press_complete"
+COMMAND_M_MULTI_PRESS_ONGOING = "multi_press_ongoing"
+COMMAND_M_SHORT_RELEASE = "short_release"
+COMMAND_M_SWLATCHED = "switch_latched"
 COMMAND_MOVE = "move"
 COMMAND_MOVE_COLOR_TEMP = "move_color_temp"
 COMMAND_MOVE_ON_OFF = "move_with_on_off"
+# Synthesized by LevelControlWithMoveDirection for remotes whose dim buttons share one stop
+COMMAND_MOVE_UP_RELEASE = "move_up_release"
+COMMAND_MOVE_DOWN_RELEASE = "move_down_release"
 COMMAND_MOVE_SATURATION = "move_saturation"
 COMMAND_MOVE_TO_SATURATION = "move_to_saturation"
 COMMAND_MOVE_TO_LEVEL_ON_OFF = "move_to_level_with_on_off"
@@ -48,6 +64,7 @@ COMMAND_OFF_WITH_EFFECT = "off_with_effect"
 COMMAND_ON = "on"
 COMMAND_PRESS = "press"
 COMMAND_QUAD = "quadruple"
+COMMAND_RECALL = "recall"
 COMMAND_RELEASE = "release"
 COMMAND_SHAKE = "shake"
 COMMAND_SINGLE = "single"
@@ -59,10 +76,13 @@ COMMAND_STEP_SATURATION = "step_saturation"
 COMMAND_STOP = "stop"
 COMMAND_STOP_MOVE_STEP = "stop_move_step"
 COMMAND_STOP_ON_OFF = "stop_with_on_off"
+COMMAND_STORE = "store"
 COMMAND_TILT = "Tilt"
 COMMAND_TOGGLE = "toggle"
 COMMAND_TRIPLE = "triple"
-CUSTOM_QUIRKS_PATH = "custom_quirks_path"
+COMMAND_STARTED_ROTATING = "started_rotating"
+COMMAND_CONTINUED_ROTATING = "continued_rotating"
+COMMAND_STOPPED_ROTATING = "stopped_rotating"
 DESCRIPTION = "description"
 DEVICE_TYPE = SIG_EP_TYPE
 DIM_DOWN = "dim_down"
@@ -90,6 +110,7 @@ OPEN = "open"
 OUTPUT_CLUSTERS = SIG_EP_OUTPUT
 PARAMS = "params"
 PRESS_TYPE = "press_type"
+PRESSED = "initial_switch_press"
 PROFILE_ID = SIG_EP_PROFILE
 QUADRUPLE_PRESS = "remote_button_quadruple_press"
 QUINTUPLE_PRESS = "remote_button_quintuple_press"
@@ -104,12 +125,37 @@ SHORT_PRESS = "remote_button_short_press"
 ALT_SHORT_PRESS = "remote_button_alt_short_press"
 SKIP_CONFIGURATION = SIG_SKIP_CONFIG
 SHORT_RELEASE = "remote_button_short_release"
+TOGGLE = "toggle"
 TRIPLE_PRESS = "remote_button_triple_press"
 TURN_OFF = "turn_off"
 TURN_ON = "turn_on"
 UNKNOWN = "Unknown"
 VALUE = "value"
 ZHA_SEND_EVENT = "zha_send_event"
-ZONE_STATE = 0
+ZONE_STATUS_CHANGE_COMMAND = 0x0000
+ZONE_STATE = 0x0000
 ZONE_TYPE = 0x0001
 ZONE_STATUS = 0x0002
+ROTARY_KNOB = "rotary_knob"
+STARTED_ROTATING = "rotary_knob_started_rotating"
+CONTINUED_ROTATING = "rotary_knob_continued_rotating"
+STOPPED_ROTATING = "rotary_knob_stopped_rotating"
+STOPPED_ROTATING_WITH_DIRECTION = "rotary_knob_stopped_rotating_with_direction"
+
+
+class BatterySize(t.enum8):
+    """Battery sizes."""
+
+    No_battery = 0x00
+    Built_in = 0x01
+    Other = 0x02
+    AA = 0x03
+    AAA = 0x04
+    C = 0x05
+    D = 0x06
+    CR2 = 0x07
+    CR123A = 0x08
+    CR2450 = 0x09
+    CR2032 = 0x0A
+    CR1632 = 0x0B
+    Unknown = 0xFF

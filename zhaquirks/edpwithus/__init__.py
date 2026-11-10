@@ -1,10 +1,8 @@
 """EDP WithUs module."""
-import logging
 
-from zigpy.quirks import CustomCluster
 from zigpy.zcl.clusters.smartenergy import Metering
 
-_LOGGER = logging.getLogger(__name__)
+from zhaquirks.clusters import CustomCluster
 
 
 class MeteringCluster(CustomCluster, Metering):

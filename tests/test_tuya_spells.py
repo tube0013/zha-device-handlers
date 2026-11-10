@@ -1,0 +1,195 @@
+"""Tests for Tuya spells."""
+
+from unittest import mock
+
+import pytest
+from zigpy.profiles import zha
+import zigpy.types as t
+from zigpy.zcl import foundation
+from zigpy.zcl.clusters.general import Basic, OnOff
+
+from zhaquirks.const import (
+    DEVICE_TYPE,
+    ENDPOINTS,
+    INPUT_CLUSTERS,
+    MODELS_INFO,
+    OUTPUT_CLUSTERS,
+    PROFILE_ID,
+)
+from zhaquirks.legacy import DEVICE_REGISTRY
+from zhaquirks.tuya import (
+    TUYA_QUERY_DATA,
+    EnchantedDevice,
+    TuyaNewManufCluster,
+    TuyaZBOnOffAttributeCluster,
+)
+import zhaquirks.tuya.tuya_valve
+
+zhaquirks.setup()
+
+
+class TuyaTestSpellDevice(EnchantedDevice):
+    """Tuya test spell device."""
+
+    tuya_spell_data_query = True  # enable additional data query spell
+
+    signature = {
+        MODELS_INFO: [("UjqjHq6ZErY23tgs", "zo9WD7q5dbvDj96y")],
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: zha.DeviceType.SMART_PLUG,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    OnOff.cluster_id,
+                    TuyaNewManufCluster.cluster_id,
+                ],
+                OUTPUT_CLUSTERS: [],
+            }
+        },
+    }
+
+    replacement = {
+        ENDPOINTS: {
+            1: {
+                PROFILE_ID: zha.PROFILE_ID,
+                DEVICE_TYPE: zha.DeviceType.SMART_PLUG,
+                INPUT_CLUSTERS: [
+                    Basic.cluster_id,
+                    TuyaZBOnOffAttributeCluster,
+                    TuyaNewManufCluster,
+                ],
+                OUTPUT_CLUSTERS: [],
+            }
+        }
+    }
+
+
+ENCHANTED_QUIRKS = [TuyaTestSpellDevice]
+for manufacturer in DEVICE_REGISTRY.registry_v1.values():
+    for model_quirk_list in manufacturer.values():
+        for quirk_entry in model_quirk_list:
+            if quirk_entry in ENCHANTED_QUIRKS:
+                continue
+            if issubclass(quirk_entry, EnchantedDevice):
+                ENCHANTED_QUIRKS.append(quirk_entry)
+
+del quirk_entry, model_quirk_list, manufacturer
+
+
+async def test_tuya_spell(zigpy_device_from_quirk):
+    """Test that enchanted Tuya devices have their spells applied during configuration."""
+    request_patch = mock.patch("zigpy.zcl.Cluster.request", mock.AsyncMock())
+    with request_patch as request_mock:
+        request_mock.return_value = (foundation.Status.SUCCESS, "done")
+
+        for quirk in ENCHANTED_QUIRKS:
+            device = zigpy_device_from_quirk(quirk)
+            assert isinstance(device, EnchantedDevice)
+
+            # call apply_custom_configuration() on each EnchantedDevice
+            # ZHA does this during device configuration normally
+            await device.apply_custom_configuration()
+
+            # collect the requests each spell made, by command
+            read_calls = [
+                c
+                for c in request_mock.call_args_list
+                if len(c.args) > 1
+                and c.args[1] == foundation.GeneralCommand.Read_Attributes
+            ]
+            query_calls = [
+                c
+                for c in request_mock.call_args_list
+                if len(c.args) > 1 and c.args[1] == TUYA_QUERY_DATA
+            ]
+
+            # check 'attribute read spell' was cast correctly (if enabled)
+            if device.tuya_spell_read_attributes:
+                # all six attributes must go out in the *first* request: Tuya devices
+                # only accept the spell as a single combined read (#5307). Flattening
+                # the attributes across requests would also accept a split read.
+                assert read_calls, "attribute read spell was not cast"
+                assert read_calls[0].args[3] == [4, 0, 1, 5, 7, 65534]
+            else:
+                assert not read_calls
+
+            # check 'query data spell' was cast correctly (if enabled)
+            if device.tuya_spell_data_query:
+                assert len(query_calls) == 1
+                assert not query_calls[0].args[0]
+            else:
+                assert not query_calls
+
+            request_mock.reset_mock()
+
+
+def test_tuya_spell_devices_valid():
+    """Test that all enchanted Tuya devices have at least one spell enabled."""
+
+    for quirk in ENCHANTED_QUIRKS:
+        # check that at least one Tuya spell is enabled for an EnchantedDevice
+        if not quirk.tuya_spell_read_attributes and not quirk.tuya_spell_data_query:
+            pytest.fail(
+                f"Enchanted quirk {quirk} does not have any Tuya spells enabled. "
+                f"Enable at least one Tuya spell by setting `TUYA_SPELL_READ_ATTRIBUTES` or `TUYA_SPELL_DATA_QUERY` "
+                f"or inherit CustomDevice rather than EnchantedDevice."
+            )
+
+        tuya_cluster_exists = False  # cluster subclassing TuyaNewManufCluster existing
+
+        # iterate over all clusters in the replacement
+        for endpoint_id, endpoint in quirk.replacement[ENDPOINTS].items():
+            if endpoint_id != 1:  # cluster with data query spell command on endpoint 1
+                continue
+            for cluster in endpoint[INPUT_CLUSTERS] + endpoint[OUTPUT_CLUSTERS]:
+                if not isinstance(cluster, int):
+                    # check if there's a valid Tuya cluster where the id wasn't modified
+                    if (
+                        issubclass(cluster, TuyaNewManufCluster)
+                        and cluster.cluster_id == TuyaNewManufCluster.cluster_id
+                    ):
+                        tuya_cluster_exists = True
+                        break
+
+        # an EnchantedDevice with the data query spell must also have a cluster subclassing TuyaNewManufCluster
+        if quirk.tuya_spell_data_query and not tuya_cluster_exists:
+            pytest.fail(
+                f"{quirk} set Tuya data query spell but has no cluster subclassing `TuyaNewManufCluster` on endpoint 1"
+            )
+
+
+async def test_tuya_spell_read_is_a_single_frame(zigpy_device_from_quirk):
+    """Test that the attribute read spell reaches the radio as one ZCL frame.
+
+    The other spell tests mock ``Cluster.request``, which accepts any keyword
+    argument, so a ``read_attributes`` keyword argument the installed zigpy does not
+    support (``split_requests``) would be swallowed instead of failing. Mocking one
+    layer lower runs the real frame building, so this test also covers the spell
+    staying compatible with zigpy.
+    """
+    device = zigpy_device_from_quirk(TuyaTestSpellDevice)
+
+    with mock.patch.object(
+        type(device),
+        "request",
+        mock.AsyncMock(return_value=(foundation.Status.SUCCESS, "done")),
+    ) as request_mock:
+        await device.apply_custom_configuration()
+
+    basic_frames = [
+        c.kwargs["data"]
+        for c in request_mock.await_args_list
+        if c.kwargs["cluster"] == Basic.cluster_id
+    ]
+    # exactly one frame: the mock answers with a bare status rather than a list of
+    # records, so zigpy marks every attribute failed and its re-read of omitted or
+    # `INSUFFICIENT_SPACE` records (ZCL R8 2.5.2.3) never sends a second request
+    assert len(basic_frames) == 1
+
+    hdr, payload = foundation.ZCLHeader.deserialize(basic_frames[0])
+    assert hdr.frame_control.is_general
+    assert hdr.command_id == foundation.GeneralCommand.Read_Attributes
+
+    attr_ids, _ = t.List[t.uint16_t].deserialize(payload)
+    assert attr_ids == [4, 0, 1, 5, 7, 65534]

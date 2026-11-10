@@ -1,7 +1,7 @@
 """ADUROLIGHT Adurolight_NCC device."""
+
 from zigpy.profiles import zha
 from zigpy.profiles.zha import DeviceType
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import Basic, Groups, Identify, LevelControl, OnOff
 from zigpy.zcl.clusters.lightlink import LightLink
 
@@ -25,6 +25,7 @@ from zhaquirks.const import (
     TURN_OFF,
     TURN_ON,
 )
+from zhaquirks.legacy import CustomDevice
 
 ADUROLIGHT_CLUSTER_ID = 64716
 

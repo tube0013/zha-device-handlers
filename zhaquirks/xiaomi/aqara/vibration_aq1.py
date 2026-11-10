@@ -1,10 +1,11 @@
 """Xiaomi aqara smart motion sensor device."""
-import logging
-import math
 
+import math
+from typing import Final
+
+from zha.quirks import XIAOMI_AQARA_VIBRATION_AQ1
+from zigpy import types
 from zigpy.profiles import zha
-from zigpy.quirks import CustomCluster
-import zigpy.types as types
 from zigpy.zcl.clusters.closures import DoorLock
 from zigpy.zcl.clusters.general import (
     Basic,
@@ -15,8 +16,10 @@ from zigpy.zcl.clusters.general import (
     Scenes,
 )
 from zigpy.zcl.clusters.security import IasZone
+from zigpy.zcl.foundation import ZCLAttributeDef
 
 from zhaquirks import Bus, LocalDataCluster, MotionOnEvent
+from zhaquirks.clusters import CustomCluster
 from zhaquirks.const import (
     CLUSTER_ID,
     COMMAND,
@@ -63,11 +66,11 @@ MEASUREMENT_TYPE = {
     DROP_VALUE: "Drop",
 }
 
-_LOGGER = logging.getLogger(__name__)
-
 
 class VibrationAQ1(XiaomiQuickInitDevice):
     """Xiaomi aqara smart motion sensor device."""
+
+    quirk_id = XIAOMI_AQARA_VIBRATION_AQ1
 
     manufacturer_id_override = 0x115F
 
@@ -79,8 +82,12 @@ class VibrationAQ1(XiaomiQuickInitDevice):
     class VibrationBasicCluster(BasicCluster):
         """Vibration cluster."""
 
-        attributes = BasicCluster.attributes.copy()
-        attributes[0xFF0D] = ("sensitivity", types.uint8_t, True)
+        class AttributeDefs(BasicCluster.AttributeDefs):
+            """Attribute definitions."""
+
+            sensitivity: Final = ZCLAttributeDef(
+                id=0xFF0D, type=types.uint8_t, is_manufacturer_specific=True
+            )
 
     class MultistateInputCluster(CustomCluster, MultistateInput):
         """Multistate input cluster."""

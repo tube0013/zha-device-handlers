@@ -1,6 +1,6 @@
 """Quirk for iluminize CCT actor."""
-from zigpy.profiles import zll
-from zigpy.quirks import CustomCluster, CustomDevice
+
+from zigpy.profiles import zgp, zll
 from zigpy.zcl.clusters.general import (
     Basic,
     GreenPowerProxy,
@@ -15,6 +15,7 @@ from zigpy.zcl.clusters.homeautomation import Diagnostic
 from zigpy.zcl.clusters.lighting import Color
 from zigpy.zcl.clusters.lightlink import LightLink
 
+from zhaquirks.clusters import CustomCluster
 from zhaquirks.const import (
     DEVICE_TYPE,
     ENDPOINTS,
@@ -24,6 +25,7 @@ from zhaquirks.const import (
     PROFILE_ID,
 )
 from zhaquirks.iluminize import ILUMINIZE
+from zhaquirks.legacy import CustomDevice
 
 
 class IluminizeCCTColorCluster(CustomCluster, Color):
@@ -64,8 +66,8 @@ class CCTLight(CustomDevice):
                 # device_version=0
                 # input_clusters=[33]
                 # output_clusters=[33]
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 102,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.COMBO_BASIC,
                 INPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -91,8 +93,8 @@ class CCTLight(CustomDevice):
                 OUTPUT_CLUSTERS: [Ota.cluster_id],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 102,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.COMBO_BASIC,
                 INPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },

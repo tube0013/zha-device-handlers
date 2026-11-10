@@ -1,8 +1,8 @@
 """Device handler for ADEO Lexman LXEK-5 (HR-C99C-Z-C045) & ZBEK-26 (HR-C99C-Z-C045-B) color controllers."""
-from typing import Any, List, Optional, Union
+
+from typing import Any
 
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 import zigpy.types as t
 from zigpy.zcl import foundation
 from zigpy.zcl.clusters.general import (
@@ -18,6 +18,7 @@ from zigpy.zcl.clusters.general import (
 from zigpy.zcl.clusters.homeautomation import Diagnostic
 from zigpy.zcl.clusters.lighting import Color
 from zigpy.zcl.clusters.lightlink import LightLink
+from zigpy.zcl.foundation import BaseCommandDefs
 
 from zhaquirks import Bus, EventableCluster
 from zhaquirks.const import (
@@ -49,6 +50,7 @@ from zhaquirks.const import (
     TURN_ON,
     ZHA_SEND_EVENT,
 )
+from zhaquirks.legacy import CustomDevice
 
 COLOR_UP = "color_up"
 COLOR_DOWN = "color_down"
@@ -67,23 +69,22 @@ class AdeoManufacturerCluster(EventableCluster):
     cluster_id = MANUFACTURER_SPECIFIC_CLUSTER_ID
     name = "AdeoManufacturerCluster"
     ep_attribute = "adeo_manufacturer_cluster"
-    client_commands = {
-        0x00: foundation.ZCLCommandDef(
-            "preset",
-            {"param1": t.uint8_t, "param2": t.uint8_t},
+
+    class ClientCommandDefs(BaseCommandDefs):
+        """Client command definitions."""
+
+        preset = foundation.ZCLCommandDef(
+            id=0x00,
+            schema={"param1": t.uint8_t, "param2": t.uint8_t},
             is_manufacturer_specific=True,
-            is_reply=False,
         )
-    }
 
     def handle_cluster_request(
         self,
         hdr: foundation.ZCLHeader,
-        args: List[Any],
+        args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[t.Addressing.Group, t.Addressing.IEEE, t.Addressing.NWK]
-        ] = None,
+        dst_addressing: t.AddrMode | None = None,
     ):
         """Handle the cluster command."""
         if hdr.command_id == 0x0000:
@@ -96,8 +97,6 @@ class AdeoManufacturerCluster(EventableCluster):
 
 class AdeoScenesCluster(Scenes, EventableCluster):
     """Scenes cluster to map preset buttons to the "view" command."""
-
-    cluster_id = Scenes.cluster_id
 
     def __init__(self, *args, **kwargs):
         """Init."""

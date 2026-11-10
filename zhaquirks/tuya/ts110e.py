@@ -1,7 +1,8 @@
 """Tuya Dimmer TS110E."""
-from typing import Any, Optional, Union
 
-from zigpy.profiles import zha
+from typing import Any, Final, Union
+
+from zigpy.profiles import zgp, zha
 import zigpy.types as t
 from zigpy.zcl import foundation
 from zigpy.zcl.clusters.general import (
@@ -14,6 +15,7 @@ from zigpy.zcl.clusters.general import (
     Scenes,
     Time,
 )
+from zigpy.zcl.foundation import ZCLAttributeDef
 
 from zhaquirks.const import (
     DEVICE_TYPE,
@@ -54,26 +56,34 @@ class TuyaBulbType(t.enum8):
 class F000LevelControlCluster(NoManufacturerCluster, LevelControl):
     """LevelControlCluster that reports to attrid 0xF000."""
 
-    server_commands = LevelControl.server_commands.copy()
-    server_commands[TUYA_CUSTOM_LEVEL_COMMAND] = foundation.ZCLCommandDef(
-        "moveToLevelTuya",
-        {"payload": TuyaLevelPayload},
-        is_manufacturer_specific=False,
-    )
+    class ServerCommandDefs(LevelControl.ServerCommandDefs):
+        """Server command definitions."""
 
-    attributes = LevelControl.attributes.copy()
-    attributes.update(
-        {
-            # 0xF000
-            TUYA_LEVEL_ATTRIBUTE: ("manufacturer_current_level", t.uint16_t),
-            # 0xFC02
-            TUYA_BULB_TYPE_ATTRIBUTE: ("bulb_type", TuyaBulbType),
-            # 0xFC03
-            TUYA_MIN_LEVEL_ATTRIBUTE: ("manufacturer_min_level", t.uint16_t),
-            # 0xFC04
-            TUYA_MAX_LEVEL_ATTRIBUTE: ("manufacturer_max_level", t.uint16_t),
-        }
-    )
+        moveToLevelTuya = foundation.ZCLCommandDef(  # noqa: N815
+            id=TUYA_CUSTOM_LEVEL_COMMAND,
+            schema={"payload": TuyaLevelPayload},
+            is_manufacturer_specific=False,
+        )
+
+    class AttributeDefs(LevelControl.AttributeDefs):
+        """Attribute definitions."""
+
+        # 0xF000
+        manufacturer_current_level: Final = ZCLAttributeDef(
+            id=TUYA_LEVEL_ATTRIBUTE, type=t.uint16_t
+        )
+        # 0xFC02
+        bulb_type: Final = ZCLAttributeDef(
+            id=TUYA_BULB_TYPE_ATTRIBUTE, type=TuyaBulbType
+        )
+        # 0xFC03
+        manufacturer_min_level: Final = ZCLAttributeDef(
+            id=TUYA_MIN_LEVEL_ATTRIBUTE, type=t.uint16_t
+        )
+        # 0xFC04
+        manufacturer_max_level: Final = ZCLAttributeDef(
+            id=TUYA_MAX_LEVEL_ATTRIBUTE, type=t.uint16_t
+        )
 
     # 0xF000 reported values are 10-1000, convert to 0-254
     def _update_attribute(self, attrid, value):
@@ -91,9 +101,9 @@ class F000LevelControlCluster(NoManufacturerCluster, LevelControl):
         self,
         command_id: Union[foundation.GeneralCommand, int, t.uint8_t],
         *args,
-        manufacturer: Optional[Union[int, t.uint16_t]] = None,
+        manufacturer: Union[int, t.uint16_t] | None = None,
         expect_reply: bool = True,
-        tsn: Optional[Union[int, t.uint8_t]] = None,
+        tsn: Union[int, t.uint8_t] | None = None,
         **kwargs: Any,
     ):
         """Override the default Cluster command."""
@@ -156,8 +166,8 @@ class DimmerSwitchWithNeutral1Gang(TuyaDimmerSwitch):
                 # <SimpleDescriptor endpoint=242 profile=41440 device_type=97
                 # input_clusters=[]
                 # output_clusters=[33]
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -179,8 +189,8 @@ class DimmerSwitchWithNeutral1Gang(TuyaDimmerSwitch):
                 OUTPUT_CLUSTERS: [Time.cluster_id, Ota.cluster_id],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },

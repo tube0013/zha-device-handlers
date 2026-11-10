@@ -1,9 +1,10 @@
 """Xiaomi Aqara EU plugs."""
-import logging
+
+from typing import Final
 
 import zigpy
-from zigpy.profiles import zha
-import zigpy.types as types
+from zigpy import types
+from zigpy.profiles import zgp, zha
 from zigpy.zcl.clusters.general import (
     Alarms,
     AnalogInput,
@@ -19,8 +20,8 @@ from zigpy.zcl.clusters.general import (
 )
 from zigpy.zcl.clusters.homeautomation import ElectricalMeasurement
 from zigpy.zcl.clusters.smartenergy import Metering
+from zigpy.zcl.foundation import ZCLAttributeDef
 
-from zhaquirks import Bus
 from zhaquirks.const import (
     DEVICE_TYPE,
     ENDPOINTS,
@@ -39,16 +40,9 @@ from zhaquirks.xiaomi import (
     XiaomiCustomDevice,
 )
 
-_LOGGER = logging.getLogger(__name__)
-
-XIAOMI_PROFILE_ID = 0xA1E0
-XIAOMI_DEVICE_TYPE = 0x61
-OPPLE_MFG_CODE = 0x115F
-
 
 async def remove_from_ep(dev: zigpy.device.Device) -> None:
-    """
-    Remove devices that are in group 0 by default, so IKEA devices don't control them.
+    """Remove devices that are in group 0 by default, so IKEA devices don't control them.
 
     This is only needed for newer firmware versions. Only a downgrade will fully fix this but this should improve it.
     See https://github.com/zigpy/zha-device-handlers/pull/1656#issuecomment-1244750465 for details.
@@ -64,12 +58,19 @@ async def remove_from_ep(dev: zigpy.device.Device) -> None:
 class OppleCluster(XiaomiAqaraE1Cluster):
     """Opple cluster."""
 
-    ep_attribute = "opple_cluster"
-    attributes = {
-        0x0009: ("mode", types.uint8_t, True),
-        0x0201: ("power_outage_memory", types.Bool, True),
-        0x0207: ("consumer_connected", types.Bool, True),
-    }
+    class AttributeDefs(XiaomiAqaraE1Cluster.AttributeDefs):
+        """Attribute definitions."""
+
+        mode: Final = ZCLAttributeDef(
+            id=0x0009, type=types.uint8_t, manufacturer_code=0x115F
+        )
+        power_outage_memory: Final = ZCLAttributeDef(
+            id=0x0201, type=types.Bool, manufacturer_code=0x115F
+        )
+        consumer_connected: Final = ZCLAttributeDef(
+            id=0x0207, type=types.Bool, manufacturer_code=0x115F
+        )
+
     # This only exists on older firmware versions. Newer versions always have the behavior as if this was set to true
     attr_config = {0x0009: 0x01}
 
@@ -77,22 +78,13 @@ class OppleCluster(XiaomiAqaraE1Cluster):
         """Bind cluster."""
         result = await super().bind()
         # Request seems to time out, but still writes the attribute successfully
-        self.create_catching_task(
-            self.write_attributes(self.attr_config, manufacturer=OPPLE_MFG_CODE)
-        )
+        self.create_catching_task(self.write_attributes(self.attr_config))
         await remove_from_ep(self.endpoint.device)
         return result
 
 
 class PlugMMEU01(XiaomiCustomDevice):
     """lumi.plug.mmeu01 plug."""
-
-    def __init__(self, *args, **kwargs):
-        """Init."""
-        self.voltage_bus = Bus()
-        self.consumption_bus = Bus()
-        self.power_bus = Bus()
-        super().__init__(*args, **kwargs)
 
     signature = {
         MODELS_INFO: [
@@ -124,8 +116,8 @@ class PlugMMEU01(XiaomiCustomDevice):
             # input_clusters=[]
             # output_clusters=[33]>
             242: {
-                PROFILE_ID: XIAOMI_PROFILE_ID,
-                DEVICE_TYPE: XIAOMI_DEVICE_TYPE,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
         },
@@ -156,8 +148,8 @@ class PlugMMEU01(XiaomiCustomDevice):
                 INPUT_CLUSTERS: [AnalogInputCluster],
             },
             242: {
-                PROFILE_ID: XIAOMI_PROFILE_ID,
-                DEVICE_TYPE: XIAOMI_DEVICE_TYPE,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
         },
@@ -211,8 +203,8 @@ class PlugMMEU01Alt1(PlugMMEU01):
             # input_clusters=[]
             # output_clusters=[33]>
             242: {
-                PROFILE_ID: XIAOMI_PROFILE_ID,
-                DEVICE_TYPE: XIAOMI_DEVICE_TYPE,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
         },
@@ -250,8 +242,8 @@ class PlugMMEU01Alt2(PlugMMEU01):
             # input_clusters=[]
             # output_clusters=[33]>
             242: {
-                PROFILE_ID: XIAOMI_PROFILE_ID,
-                DEVICE_TYPE: XIAOMI_DEVICE_TYPE,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
         },
@@ -307,8 +299,8 @@ class PlugMMEU01Alt3(PlugMMEU01):
             # input_clusters=[]
             # output_clusters=[33]>
             242: {
-                PROFILE_ID: XIAOMI_PROFILE_ID,
-                DEVICE_TYPE: XIAOMI_DEVICE_TYPE,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
         },

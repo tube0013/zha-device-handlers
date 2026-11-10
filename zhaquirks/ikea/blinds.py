@@ -1,6 +1,6 @@
 """Device handler for IKEA of Sweden TRADFRI Fyrtur blinds."""
+
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.closures import WindowCovering
 from zigpy.zcl.clusters.general import (
     Basic,
@@ -13,7 +13,6 @@ from zigpy.zcl.clusters.general import (
 )
 from zigpy.zcl.clusters.lightlink import LightLink
 
-from zhaquirks import DoublingPowerConfigurationCluster
 from zhaquirks.const import (
     DEVICE_TYPE,
     ENDPOINTS,
@@ -22,7 +21,8 @@ from zhaquirks.const import (
     OUTPUT_CLUSTERS,
     PROFILE_ID,
 )
-from zhaquirks.ikea import IKEA, IKEA_CLUSTER_ID
+from zhaquirks.ikea import IKEA, IKEA_CLUSTER_ID, DoublingPowerConfigClusterIKEA
+from zhaquirks.legacy import CustomDevice
 
 
 class IkeaTradfriRollerBlinds(CustomDevice):
@@ -37,6 +37,7 @@ class IkeaTradfriRollerBlinds(CustomDevice):
             (IKEA, "FYRTUR block-out roller blind"),
             (IKEA, "KADRILJ roller blind"),
             (IKEA, "TREDANSEN block-out cellul blind"),
+            (IKEA, "PRAKTLYSING cellular blind"),
         ],
         ENDPOINTS: {
             1: {
@@ -65,7 +66,7 @@ class IkeaTradfriRollerBlinds(CustomDevice):
                 DEVICE_TYPE: zha.DeviceType.WINDOW_COVERING_DEVICE,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    DoublingPowerConfigurationCluster,
+                    DoublingPowerConfigClusterIKEA,
                     Identify.cluster_id,
                     Groups.cluster_id,
                     Scenes.cluster_id,

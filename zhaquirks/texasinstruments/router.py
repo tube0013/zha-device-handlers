@@ -1,8 +1,11 @@
 """Texas Instruments Z-Stack router device."""
-from zigpy.profiles import zha
-from zigpy.quirks import CustomCluster, CustomDevice
+
+from typing import Final
+
+from zigpy.profiles import zgp, zha
 import zigpy.types as t
 from zigpy.zcl.clusters.general import Basic, GreenPowerProxy, Identify
+from zigpy.zcl.foundation import ZCLAttributeDef
 
 from zhaquirks import (
     DEVICE_TYPE,
@@ -12,13 +15,19 @@ from zhaquirks import (
     OUTPUT_CLUSTERS,
     PROFILE_ID,
 )
+from zhaquirks.clusters import CustomCluster
+from zhaquirks.legacy import CustomDevice
 
 
 class BasicCluster(CustomCluster, Basic):
     """Texas Instruments Basic cluster."""
 
-    attributes = Basic.attributes.copy()
-    attributes[0x1337] = ("transmit_power", t.int8s, False)
+    class AttributeDefs(Basic.AttributeDefs):
+        """Attribute definitions."""
+
+        transmit_power: Final = ZCLAttributeDef(
+            id=0x1337, type=t.int8s, is_manufacturer_specific=True
+        )
 
 
 class TiRouter(CustomDevice):
@@ -39,8 +48,8 @@ class TiRouter(CustomDevice):
                 ],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -60,8 +69,8 @@ class TiRouter(CustomDevice):
                 ],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },

@@ -1,15 +1,13 @@
 """Module for Samjin quirks implementations."""
-import logging
-from typing import Any, List, Optional, Union
 
-from zigpy.quirks import CustomCluster
-from zigpy.types import Addressing
+from typing import Any
+
+import zigpy.types as t
 from zigpy.zcl import foundation
 import zigpy.zcl.clusters.security
 
+from zhaquirks.clusters import CustomCluster
 from zhaquirks.const import ARGS, COMMAND_ID, PRESS_TYPE, ZHA_SEND_EVENT
-
-_LOGGER = logging.getLogger(__name__)
 
 DOUBLE = 2
 HOLD = 3
@@ -25,11 +23,9 @@ class SamjinIASCluster(CustomCluster, zigpy.zcl.clusters.security.IasZone):
     def handle_cluster_request(
         self,
         hdr: foundation.ZCLHeader,
-        args: List[Any],
+        args: list[Any],
         *,
-        dst_addressing: Optional[
-            Union[Addressing.Group, Addressing.IEEE, Addressing.NWK]
-        ] = None,
+        dst_addressing: t.AddrMode | None = None,
     ):
         """Handle a cluster command received on this cluster."""
         if hdr.command_id == 0:
@@ -39,5 +35,5 @@ class SamjinIASCluster(CustomCluster, zigpy.zcl.clusters.security.IasZone):
                 COMMAND_ID: hdr.command_id,
                 ARGS: args,
             }
-            action = "button_{}".format(CLICK_TYPES[state])
+            action = f"button_{CLICK_TYPES[state]}"
             self.listener_event(ZHA_SEND_EVENT, action, event_args)

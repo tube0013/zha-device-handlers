@@ -1,6 +1,6 @@
 """Device handler for Aurora dimmer switch, battery powered."""
-from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
+
+from zigpy.profiles import zgp, zha
 from zigpy.zcl.clusters.general import (
     Basic,
     GreenPowerProxy,
@@ -32,6 +32,7 @@ from zhaquirks.const import (
     RIGHT,
     SHORT_PRESS,
 )
+from zhaquirks.legacy import CustomDevice
 
 COLOR_UP = "color_up"
 COLOR_DOWN = "color_down"
@@ -118,8 +119,8 @@ class AuroraDimmerBatteryPowered(CustomDevice):
                 # device_version=0
                 # input_clusters=[]
                 # output_clusters=[33]
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },
@@ -165,8 +166,8 @@ class AuroraDimmerBatteryPowered(CustomDevice):
                 ],
             },
             242: {
-                PROFILE_ID: 41440,
-                DEVICE_TYPE: 97,
+                PROFILE_ID: zgp.PROFILE_ID,
+                DEVICE_TYPE: zgp.DeviceType.PROXY_BASIC,
                 INPUT_CLUSTERS: [],
                 OUTPUT_CLUSTERS: [GreenPowerProxy.cluster_id],
             },

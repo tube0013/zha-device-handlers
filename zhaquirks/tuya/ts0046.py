@@ -22,8 +22,12 @@ from zhaquirks.const import (
     PROFILE_ID,
     SHORT_PRESS,
 )
-from zhaquirks.tuya import TuyaSmartRemoteOnOffCluster, TuyaZBE000Cluster
-from zhaquirks.tuya.mcu import EnchantedDevice
+from zhaquirks.tuya import (
+    EnchantedDevice,
+    TuyaNoBindPowerConfigurationCluster,
+    TuyaSmartRemoteOnOffCluster,
+    TuyaZBE000Cluster,
+)
 
 
 class Tuya6ButtonTriggers:
@@ -108,7 +112,7 @@ class TuyaSmartRemote0046(EnchantedDevice, Tuya6ButtonTriggers):
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaZBE000Cluster,
                 ],
                 OUTPUT_CLUSTERS: [

@@ -1,7 +1,6 @@
 """Tuya 4 Button Remote."""
 
 from zigpy.profiles import zha
-from zigpy.quirks import CustomDevice
 from zigpy.zcl.clusters.general import Basic, OnOff, Ota, PowerConfiguration, Time
 
 from zhaquirks.const import (
@@ -21,7 +20,12 @@ from zhaquirks.const import (
     PROFILE_ID,
     SHORT_PRESS,
 )
-from zhaquirks.tuya import TuyaSmartRemoteOnOffCluster, TuyaZBE000Cluster
+from zhaquirks.legacy import CustomDevice
+from zhaquirks.tuya import (
+    TuyaNoBindPowerConfigurationCluster,
+    TuyaSmartRemoteOnOffCluster,
+    TuyaZBE000Cluster,
+)
 
 
 class Tuya4ButtonTriggers:
@@ -100,7 +104,7 @@ class TuyaSmartRemote0044TI(CustomDevice, Tuya4ButtonTriggers):
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                     Time.cluster_id,
                 ],
@@ -110,7 +114,7 @@ class TuyaSmartRemote0044TI(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -119,7 +123,7 @@ class TuyaSmartRemote0044TI(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -128,7 +132,7 @@ class TuyaSmartRemote0044TI(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -193,7 +197,7 @@ class TuyaSmartRemote0044TO(CustomDevice, Tuya4ButtonTriggers):
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [Time.cluster_id, Ota.cluster_id],
@@ -202,7 +206,7 @@ class TuyaSmartRemote0044TO(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -211,7 +215,7 @@ class TuyaSmartRemote0044TO(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -220,7 +224,7 @@ class TuyaSmartRemote0044TO(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -286,7 +290,7 @@ class TuyaSmartRemote0044TOPlusA(CustomDevice, Tuya4ButtonTriggers):
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                     TuyaZBE000Cluster,
                 ],
@@ -296,7 +300,7 @@ class TuyaSmartRemote0044TOPlusA(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -305,7 +309,7 @@ class TuyaSmartRemote0044TOPlusA(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -314,7 +318,7 @@ class TuyaSmartRemote0044TOPlusA(CustomDevice, Tuya4ButtonTriggers):
                 PROFILE_ID: zha.PROFILE_ID,
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                     TuyaSmartRemoteOnOffCluster,
                 ],
                 OUTPUT_CLUSTERS: [],
@@ -382,7 +386,7 @@ class TuyaSmartRemote0044TOPlusB(CustomDevice, Tuya4ButtonTriggers):
                 DEVICE_TYPE: zha.DeviceType.REMOTE_CONTROL,
                 INPUT_CLUSTERS: [
                     Basic.cluster_id,
-                    PowerConfiguration.cluster_id,
+                    TuyaNoBindPowerConfigurationCluster,
                 ],
                 OUTPUT_CLUSTERS: [
                     Time.cluster_id,
